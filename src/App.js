@@ -1,10 +1,8 @@
-import logo from "./logo.svg";
 import "./App.css";
 import TodoList from "./components/TodoList";
 import { TodosContext } from "./contexts/todosContext";
 import { v4 as uuidv4 } from "uuid";
 import { useState } from "react";
-import MySnackBar from "./components/MySnackBar";
 import { ToastProvider } from "./contexts/ToastContext";
 
 const initialTodos = [

@@ -6,35 +6,35 @@ import IconButton from "@mui/material/IconButton";
 import DeleteIcon from "@mui/icons-material/Delete";
 import CheckIcon from "@mui/icons-material/Check";
 import ModeEditOutlineOutlinedIcon from "@mui/icons-material/ModeEditOutlineOutlined";
-import { useContext, useState } from "react";
+import { useContext } from "react";
 import { TodosContext } from "../contexts/todosContext";
 import { ToastContext } from "../contexts/ToastContext";
-export default function Todo({ todo, showDelete, showUpdate }) {
-  const [updatedTodo, setUpdatedTodo] = useState({
-    title: todo.title,
-    details: todo.details,
-  });
-  const { todos, setTodos } = useContext(TodosContext);
-  const { showHideToast } = useContext(ToastContext);
 
+export default function Todo({ todo, showDelete, showUpdate }) {
+  const { todos, setTodos } = useContext(TodosContext); // Global todos ve güncelleme fonksiyonu
+  const { showHideToast } = useContext(ToastContext); // Toast mesajını göstermek için
+
+  // Bu fonksiyon, görevin tamamlanma durumunu değiştirir ve localStorage'i günceller
   function handleCheckClick() {
     const updatedTodos = todos.map((t) => {
       if (t.id == todo.id) {
-        t.isCompleted = !t.isCompleted;
+        t.isCompleted = !t.isCompleted; // Görevin tamamlanmış/ tamamlanmamış durumunu değiştir
       }
       return t;
     });
     setTodos(updatedTodos);
     localStorage.setItem("todos", JSON.stringify(updatedTodos));
-    showHideToast("Değiştirilmiş");
+    showHideToast("Değiştirilmiş"); // Toast ile kullanıcıyı bilgilendir
   }
 
+  // Bu fonksiyon, silme işlemi için üst bileşene todo bilgisini gönderir
   function handleDeleteClick() {
-    showDelete(todo);
+    showDelete(todo); // Silme dialogunu aç
   }
 
+  // Bu fonksiyon, güncelleme işlemi için üst bileşene todo bilgisini gönderir
   function handleUpdateClick() {
-    showUpdate(todo);
+    showUpdate(todo); // Güncelleme dialogunu aç
   }
 
   return (
@@ -51,18 +51,20 @@ export default function Todo({ todo, showDelete, showUpdate }) {
       >
         <CardContent>
           <Grid container spacing={2}>
+            {/* Görev başlığı ve detay */}
             <Grid size={8}>
               <Typography
                 variant="h5"
                 sx={{
-                  textDecoration: todo.isCompleted ? "line-through" : "none",
+                  textDecoration: todo.isCompleted ? "line-through" : "none", // Tamamlandıysa üstü çizili göster
                 }}
               >
                 {todo.title}
               </Typography>
               <Typography variant="h6">{todo.details}</Typography>
             </Grid>
-            {/* action buttons */}
+
+            {/* İşlem butonları: Tamamla, Düzenle, Sil */}
             <Grid
               size={4}
               display="flex"
@@ -70,10 +72,9 @@ export default function Todo({ todo, showDelete, showUpdate }) {
               alignItems="center"
               size="grow"
             >
+              {/* Tamamla butonu */}
               <IconButton
-                onClick={() => {
-                  handleCheckClick();
-                }}
+                onClick={handleCheckClick}
                 className="iconButton"
                 aria-label="check"
                 style={{
@@ -85,6 +86,7 @@ export default function Todo({ todo, showDelete, showUpdate }) {
                 <CheckIcon />
               </IconButton>
 
+              {/* Düzenle butonu */}
               <IconButton
                 onClick={handleUpdateClick}
                 className="iconButton"
@@ -98,6 +100,7 @@ export default function Todo({ todo, showDelete, showUpdate }) {
                 <ModeEditOutlineOutlinedIcon />
               </IconButton>
 
+              {/* Sil butonu */}
               <IconButton
                 className="iconButton"
                 aria-label="delete"
@@ -111,7 +114,7 @@ export default function Todo({ todo, showDelete, showUpdate }) {
                 <DeleteIcon />
               </IconButton>
             </Grid>
-            {/* ===action buttons=== */}
+            {/* === İşlem butonları bitiş === */}
           </Grid>
         </CardContent>
       </Card>

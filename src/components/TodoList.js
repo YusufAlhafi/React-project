@@ -5,10 +5,6 @@ import CardContent from "@mui/material/CardContent";
 import Typography from "@mui/material/Typography";
 import Divider from "@mui/material/Divider";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
-import FormatAlignLeftIcon from "@mui/icons-material/FormatAlignLeft";
-import FormatAlignCenterIcon from "@mui/icons-material/FormatAlignCenter";
-import FormatAlignRightIcon from "@mui/icons-material/FormatAlignRight";
-import FormatAlignJustifyIcon from "@mui/icons-material/FormatAlignJustify";
 import ToggleButton from "@mui/material/ToggleButton";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
@@ -21,60 +17,64 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
-
-//components
 import Todo from "./Todo";
 import { Grid } from "@mui/material";
-import { Title } from "@mui/icons-material";
 
 export default function TodoList() {
   const { todos, setTodos } = useContext(TodosContext);
   const { showHideToast } = useContext(ToastContext);
-  const [dialogTodo, setDialogTodo] = useState(null);
-  const [showDeleteDialog, setShowDeleteDeialog] = useState(false);
-  const [showUpdateDialog, setShowUpdateDeialog] = useState(false);
+  const [dialogTodo, setDialogTodo] = useState(null); // Dialog içinde düzenlenen veya silinen todo
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false); // Silme dialog görünürlüğü
+  const [showUpdateDialog, setShowUpdateDialog] = useState(false); // Güncelleme dialog görünürlüğü
 
-  const [titleInput, setTitleInput] = useState("");
-  const [displayedTodosType, setDisplayedTodosType] = useState("all");
+  const [titleInput, setTitleInput] = useState(""); // Yeni görev başlığı inputu
+  const [displayedTodosType, setDisplayedTodosType] = useState("all"); // Gösterilecek todo tipi (all, completed, non-completed)
 
-  const completedTodos = useMemo(() => {
-    return todos.filter((t) => {
-      return t.isCompleted;
-    });
-  }, [todos]);
+  const [pendingToast, setPendingToast] = useState(""); // Dialog kapandıktan sonra gösterilecek toast mesajı
 
-  const nonCompletedTodos = useMemo(() => {
-    return todos.filter((t) => {
-      return !t.isCompleted;
-    });
-  }, [todos]);
+  // Tamamlanmış ve tamamlanmamış görevleri filtrelemek için
+  const completedTodos = useMemo(
+    () => todos.filter((t) => t.isCompleted),
+    [todos]
+  );
+  const nonCompletedTodos = useMemo(
+    () => todos.filter((t) => !t.isCompleted),
+    [todos]
+  );
 
   let todosToBeRendered = todos;
-  if (displayedTodosType == "completed") {
-    todosToBeRendered = completedTodos;
-  } else if (displayedTodosType == "non-completed") {
+  if (displayedTodosType === "completed") todosToBeRendered = completedTodos;
+  else if (displayedTodosType === "non-completed")
     todosToBeRendered = nonCompletedTodos;
-  } else {
-    todosToBeRendered = todos;
-  }
 
+  // Uygulama açıldığında localStorage'den görevleri yükle
   useEffect(() => {
     const StorageTodos = JSON.parse(localStorage.getItem("todos")) ?? [];
     setTodos(StorageTodos);
   }, []);
 
+  // Dialog kapandıktan sonra pendingToast varsa göster
+  useEffect(() => {
+    if (!showUpdateDialog && pendingToast) {
+      showHideToast(pendingToast);
+      setPendingToast("");
+    }
+  }, [showUpdateDialog, pendingToast]);
+
+  // Bu fonksiyon, gösterilecek todo tipini değiştirir
   function changeDisplayedType(e) {
     setDisplayedTodosType(e.target.value);
   }
 
+  // Bu fonksiyon, yeni bir görev ekler ve localStorage'i günceller
   function handleAddClick() {
+    if (!titleInput.trim()) return;
     const newTodo = {
       id: uuidv4(),
       title: titleInput,
       details: "",
       isCompleted: false,
     };
-
     const updatedTodos = [...todos, newTodo];
     setTodos(updatedTodos);
     localStorage.setItem("todos", JSON.stringify(updatedTodos));
@@ -82,73 +82,91 @@ export default function TodoList() {
     showHideToast("Yeni bir görev eklendi");
   }
 
-  function openDeleteDeialog(todo) {
-    setDialogTodo(todo);
-    setShowDeleteDeialog(true);
+  // Bu fonksiyon, Enter tuşuna basıldığında yeni görev ekler
+  function handleAddKeyDown(e) {
+    if (e.key === "Enter") handleAddClick();
   }
 
-  function openUpdateDeialog(todo) {
-    setDialogTodo(todo);
-    setShowUpdateDeialog(true);
-  }
-
-  function handleDeleteDialogClose() {
-    setShowDeleteDeialog(false);
-  }
-
-  function handleDeleteConfirm() {
-    const updatedTodos = todos.filter((t) => {
-      return t.id != dialogTodo.id;
-    });
-    setTodos(updatedTodos);
-    localStorage.setItem("todos", JSON.stringify(updatedTodos));
-    setShowDeleteDeialog(false);
-    showHideToast("Silinmiş");
-  }
-
-  function handleUpdateClose() {
-    setShowUpdateDeialog(false);
-  }
-
+  // Bu fonksiyon, seçilen görevi günceller ve Dialog'u kapatır
   function handleUpdateConfirm() {
-    const updatedTodos = todos.map((t) => {
-      if (t.id == dialogTodo.id) {
-        return { ...t, title: dialogTodo.title, details: dialogTodo.details };
-      } else {
-        return t;
-      }
-    });
+    if (!dialogTodo.title.trim()) return;
+
+    setShowUpdateDialog(false); // Dialog'u kapat
+
+    const updatedTodos = todos.map((t) =>
+      t.id === dialogTodo.id
+        ? { ...t, title: dialogTodo.title, details: dialogTodo.details }
+        : t
+    );
     setTodos(updatedTodos);
     localStorage.setItem("todos", JSON.stringify(updatedTodos));
-    setShowUpdateDeialog(false);
-    showHideToast("Güncellenmiş");
+
+    setPendingToast("Güncellenmiş"); // Güncelleme sonrası toast göster
   }
 
-  const todosJsx = todosToBeRendered.map((t) => {
-    return (
-      <Todo
-        key={t.id}
-        todo={t}
-        showDelete={openDeleteDeialog}
-        showUpdate={openUpdateDeialog}
-      />
-    );
-  });
+  // Bu fonksiyon, Enter tuşuna basıldığında görevi güncelleme işlemini tetikler
+  function handleUpdateKeyDown(e) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleUpdateConfirm();
+    }
+  }
+
+  // Bu fonksiyon, silme Dialog'unu açar
+  function openDeleteDialog(todo) {
+    setDialogTodo(todo);
+    setShowDeleteDialog(true);
+  }
+
+  // Bu fonksiyon, silme Dialog'unu kapatır
+  function handleDeleteDialogClose() {
+    setShowDeleteDialog(false);
+  }
+
+  // Bu fonksiyon, seçilen görevi siler ve localStorage'i günceller
+  function handleDeleteConfirm() {
+    const updatedTodos = todos.filter((t) => t.id !== dialogTodo.id);
+    setTodos(updatedTodos);
+    localStorage.setItem("todos", JSON.stringify(updatedTodos));
+    setShowDeleteDialog(false);
+
+    setTimeout(() => showHideToast("Silinmiş"), 50); // Silme sonrası toast göster
+  }
+
+  // Bu fonksiyon, güncelleme Dialog'unu açar
+  function openUpdateDialog(todo) {
+    setDialogTodo(todo);
+    setShowUpdateDialog(true);
+  }
+
+  // Bu fonksiyon, güncelleme Dialog'unu kapatır
+  function handleUpdateClose() {
+    setShowUpdateDialog(false);
+  }
+
+  // Render edilecek görevleri Todo component'leri olarak hazırla
+  const todosJsx = todosToBeRendered.map((t) => (
+    <Todo
+      key={t.id}
+      todo={t}
+      showDelete={openDeleteDialog}
+      showUpdate={openUpdateDialog}
+    />
+  ));
 
   return (
     <>
+      {/* Silme Dialog */}
       <Dialog
-        style={{ direction: "rtl" }}
         onClose={handleDeleteDialogClose}
         open={showDeleteDialog}
         aria-labelledby="alert-dialog-title"
-        aria-describedby="alert-dialog-description"
       >
         <DialogTitle id="alert-dialog-title">
           Görevi silmek istediğinize emin misiniz?
         </DialogTitle>
         <DialogContent>
-          <DialogContentText id="alert-dialog-description">
+          <DialogContentText>
             Silme işlemini geri alamazsiniz.
           </DialogContentText>
         </DialogContent>
@@ -160,12 +178,11 @@ export default function TodoList() {
         </DialogActions>
       </Dialog>
 
+      {/* Güncelleme Dialog */}
       <Dialog
-        style={{ direction: "ltr" }}
         onClose={handleUpdateClose}
         open={showUpdateDialog}
         aria-labelledby="alert-dialog-title"
-        aria-describedby="alert-dialog-description"
       >
         <DialogTitle id="alert-dialog-title">Görevi Düzenle</DialogTitle>
         <DialogContent>
@@ -173,29 +190,25 @@ export default function TodoList() {
             autoFocus
             required
             margin="dense"
-            id="name"
-            name="email"
             label="Görev Başliği"
             fullWidth
             variant="standard"
             value={dialogTodo?.title || ""}
-            onChange={(e) => {
-              setDialogTodo({ ...dialogTodo, title: e.target.value });
-            }}
+            onChange={(e) =>
+              setDialogTodo({ ...dialogTodo, title: e.target.value })
+            }
+            onKeyDown={handleUpdateKeyDown} // Enter ile güncelle
           />
           <TextField
-            autoFocus
-            required
             margin="dense"
-            id="name"
-            name="email"
             label="Detaylar"
             fullWidth
             variant="standard"
             value={dialogTodo?.details || ""}
-            onChange={(e) => {
-              setDialogTodo({ ...dialogTodo, details: e.target.value });
-            }}
+            onChange={(e) =>
+              setDialogTodo({ ...dialogTodo, details: e.target.value })
+            }
+            onKeyDown={handleUpdateKeyDown} // Enter ile güncelle
           />
         </DialogContent>
         <DialogActions>
@@ -206,69 +219,51 @@ export default function TodoList() {
         </DialogActions>
       </Dialog>
 
+      {/* Todo Listesi */}
       <Container maxWidth="sm">
         <Card sx={{ minWidth: 275, maxHeight: "80vh", overflow: "scroll" }}>
           <CardContent>
             <Typography variant="h2">Görevlerim</Typography>
             <Divider />
-            {/* Filter buttons */}
+
+            {/* Filtre butonları */}
             <ToggleButtonGroup
               style={{ direction: "rtl", marginTop: "20px" }}
               value={displayedTodosType}
               exclusive
               onChange={changeDisplayedType}
-              aria-label="text alignment"
             >
               <ToggleButton value="non-completed">Tamamlanmamiş</ToggleButton>
               <ToggleButton value="completed">Tamamlandi</ToggleButton>
               <ToggleButton value="all">Tümü</ToggleButton>
             </ToggleButtonGroup>
 
-            {/* ==Filer buttons */}
-
-            {/* All todos  */}
             {todosJsx}
-            {/* ===All todos===  */}
 
-            {/* input + add button */}
-            <Grid container style={{ marginTop: "20px" }} spacing={2}>
-              <Grid
-                size={8}
-                display="flex"
-                justifyContent="space-around"
-                alignItems="center"
-              >
+            {/* Yeni görev ekleme */}
+            <Grid container spacing={2} style={{ marginTop: "20px" }}>
+              <Grid style={{ flex: 2 }}>
                 <TextField
-                  style={{ width: "100%" }}
+                  fullWidth
                   id="outlined-basic"
                   label="Görev Başliği"
                   variant="outlined"
                   value={titleInput}
-                  onChange={(e) => {
-                    setTitleInput(e.target.value);
-                  }}
+                  onChange={(e) => setTitleInput(e.target.value)}
+                  onKeyDown={handleAddKeyDown} // Enter ile ekleme
                 />
               </Grid>
-
-              <Grid
-                size={4}
-                display="flex"
-                justifyContent="space-around"
-                alignItems="center"
-              >
+              <Grid style={{ flex: 1 }}>
                 <Button
-                  style={{ width: "100%", height: "100%" }}
+                  fullWidth
                   variant="contained"
-                  onClick={() => {
-                    handleAddClick();
-                  }}
-                  disabled={titleInput.length == 0}
+                  onClick={handleAddClick}
+                  disabled={titleInput.length === 0}
                 >
                   Ekle
                 </Button>
               </Grid>
             </Grid>
-            {/* ====input + add button====*/}
           </CardContent>
         </Card>
       </Container>
